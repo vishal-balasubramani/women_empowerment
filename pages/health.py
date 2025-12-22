@@ -4,7 +4,6 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import os
 import re
-from openai import OpenAI
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -14,12 +13,6 @@ from utils.helpers import chatbot_response
 
 # Load CSS
 load_css()
-
-# Initialize OpenAI Client (Local scope to ensure availability)
-try:
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-except:
-    client = None
 
 # ==================== STATE MANAGEMENT ====================
 # --- Dashboard State ---
@@ -105,7 +98,6 @@ st.markdown("<br>", unsafe_allow_html=True)
 tab1, tab2, tab3, tab4 = st.tabs(["🩺 General Health", "🍎 Nutrition", "🧘‍♀️ Mental Wellness", "🧠 Period Tracker"])
 
 # --- TAB 1: General Health ---
-# --- TAB 1: General Health (ENHANCED) ---
 with tab1:
     st.markdown("### 🩺 Daily Health Log")
     
@@ -116,7 +108,7 @@ with tab1:
             c1, c2 = st.columns(2)
             with c1:
                 weight = st.number_input("Weight (kg)", value=60.0, step=0.1)
-                height = st.number_input("Height (cm)", value=165.0, step=1.0) # Added Height
+                height = st.number_input("Height (cm)", value=165.0, step=1.0)
                 blood_pressure = st.text_input("Blood Pressure", placeholder="120/80")
             with c2:
                 hr_input = st.number_input("Heart Rate (bpm)", min_value=40, max_value=180, value=st.session_state['heart_rate'])
@@ -134,7 +126,6 @@ with tab1:
                 st.rerun()
 
     with col2:
-        # --- NEW: BMI CALCULATOR ---
         st.markdown("#### ⚖️ BMI Calculator")
         bmi = weight / ((height/100) ** 2)
         bmi = round(bmi, 1)
@@ -156,7 +147,6 @@ with tab1:
             </div>
         """, unsafe_allow_html=True)
 
-    # --- NEW: AI SYMPTOM CHECKER ---
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("### 🚑 Quick Symptom Checker")
     
@@ -164,8 +154,8 @@ with tab1:
     with sym_col1:
         symptom_query = st.text_input("Describe what you are feeling...", placeholder="e.g., I have a throbbing headache and nausea")
     with sym_col2:
-        st.write("") # Spacer
-        st.write("") # Spacer
+        st.write("") 
+        st.write("") 
         check_sym = st.button("🔍 Check", use_container_width=True)
         
     if check_sym and symptom_query:
@@ -174,12 +164,10 @@ with tab1:
             advice = chatbot_response(prompt, context="First Aid & Home Remedies")
             st.info(advice)
 
-
 # --- TAB 2: Nutrition (AI MACROS & MEAL IDEAS) ---
 with tab2:
     st.markdown("### 🍎 Smart Nutrition Tracker")
     
-    # Initialize Macro State if not exists
     if 'protein' not in st.session_state: st.session_state['protein'] = 0
     if 'carbs' not in st.session_state: st.session_state['carbs'] = 0
     if 'fats' not in st.session_state: st.session_state['fats'] = 0
@@ -193,40 +181,43 @@ with tab2:
         st.session_state['meal_dinner'] = st.text_area("Dinner", value=st.session_state['meal_dinner'], placeholder="e.g., Salmon and Rice", height=70)
         st.session_state['meal_snacks'] = st.text_area("Snacks", value=st.session_state['meal_snacks'], placeholder="e.g., Apple", height=70)
     
-    # --- UPDATED AI MACRO ESTIMATOR ---
+    # --- UPDATED AI MACRO ESTIMATOR (GEMINI POWERED) ---
     def ai_estimate_macros():
         meals = f"B: {st.session_state.get('meal_breakfast')} L: {st.session_state.get('meal_lunch')} D: {st.session_state.get('meal_dinner')} S: {st.session_state.get('meal_snacks')}"
         if len(meals) < 20: return 
 
         try:
-            # New Prompt requesting Macros
             prompt = f"""
             Analyze these meals: {meals}.
             Estimate total: 1. Calories 2. Protein(g) 3. Carbs(g) 4. Fats(g).
             Return ONLY 4 numbers separated by commas. Example: 1500, 80, 150, 50.
             """
-            if client:
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}], max_tokens=50
-                )
-                nums = re.findall(r'\d+', response.choices[0].message.content)
-                if len(nums) >= 4:
-                    st.session_state['cal_total'] = int(nums[0]) # Store total directly
-                    st.session_state['protein'] = int(nums[1])
-                    st.session_state['carbs'] = int(nums[2])
-                    st.session_state['fats'] = int(nums[3])
+            
+            # Use Gemini helper function instead of direct OpenAI call
+            response_text = chatbot_response(prompt, context="Nutritionist")
+            
+            # Extract numbers using regex
+            nums = re.findall(r'\d+', response_text)
+            
+            if len(nums) >= 4:
+                st.session_state['cal_total'] = int(nums[0])
+                st.session_state['protein'] = int(nums[1])
+                st.session_state['carbs'] = int(nums[2])
+                st.session_state['fats'] = int(nums[3])
             else:
-                # Demo Fallback
-                st.session_state['cal_total'] = 1650; st.session_state['protein'] = 90; st.session_state['carbs'] = 180; st.session_state['fats'] = 60
-        except: pass
+                # Fallback if AI output isn't perfect
+                st.session_state['cal_total'] = 1650
+                st.session_state['protein'] = 90
+                st.session_state['carbs'] = 180
+                st.session_state['fats'] = 60
+        except: 
+            pass
 
     with col2:
         st.markdown("#### 📊 Nutritional Breakdown")
         
-        # Total Calories Display
         total_cal = st.session_state.get('cal_total', 0)
         
-        # Macro Cards (Protein, Carbs, Fats)
         m1, m2, m3 = st.columns(3)
         with m1: st.metric("Protein", f"{st.session_state['protein']}g")
         with m2: st.metric("Carbs", f"{st.session_state['carbs']}g")
@@ -243,7 +234,6 @@ with tab2:
 
     st.markdown("<hr>", unsafe_allow_html=True)
     
-    # --- NEW: MEAL SUGGESTER ---
     st.markdown("#### 🥗 Need a Healthy Meal Idea?")
     remaining_cal = 2000 - total_cal
     if st.button(f"Suggest a {remaining_cal} calorie dinner idea"):
@@ -252,16 +242,14 @@ with tab2:
             recipe = chatbot_response(prompt, context="Healthy Recipes")
             st.success(recipe)
 
-# --- TAB 3: Mental Wellness (ENHANCED) ---
+# --- TAB 3: Mental Wellness ---
 with tab3:
     st.markdown("### 🧘‍♀️ Mental Wellness Sanctuary")
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 1. MOOD TRACKER
     st.markdown("#### 📅 How are you feeling right now?")
     col_a, col_b, col_c, col_d, col_e = st.columns(5)
     
-    # Mood buttons that update state and show a specific message
     if col_a.button("🤩 Amazing", use_container_width=True): 
         st.session_state['current_mood'] = "Amazing"
         st.success("You're glowing! Keep spreading that positivity! ✨")
@@ -284,7 +272,6 @@ with tab3:
 
     st.markdown("<hr style='margin: 30px 0;'>", unsafe_allow_html=True)
 
-    # 2. AI VENTING SPACE / THERAPY CHAT
     col1, col2 = st.columns([3, 2])
     
     with col1:
@@ -296,7 +283,6 @@ with tab3:
         if st.button("💙 Share & Get Support"):
             if vent_text:
                 with st.spinner("Listening and thinking..."):
-                    # Custom prompt for empathy
                     prompt = f"I am feeling {st.session_state.get('current_mood', 'unsure')}. Here is what's on my mind: '{vent_text}'. Please act as an empathetic, supportive friend/therapist. Validate my feelings and offer 1-2 gentle coping strategies. Keep it short and warm."
                     support_msg = chatbot_response(prompt, context="Mental Health Support")
                     
@@ -310,11 +296,9 @@ with tab3:
                 st.warning("Please write something first. We are here to listen.")
 
     with col2:
-        # 3. BREATHING EXERCISE
         st.markdown("#### 🌬️ Box Breathing")
         st.info("Follow the circle: Inhale (4s), Hold (4s), Exhale (4s), Hold (4s).")
         
-        # Simple CSS Animation for Breathing
         st.markdown("""
             <style>
             @keyframes breathe {
@@ -341,7 +325,6 @@ with tab3:
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # 4. DAILY AFFIRMATION
         if st.button("✨ Get Daily Affirmation", use_container_width=True):
             affirmations = [
                 "I am enough just as I am.",
@@ -354,7 +337,6 @@ with tab3:
             chosen = random.choice(affirmations)
             st.success(f"**{chosen}**")
 
-    # 5. RESOURCES FOOTER
     st.markdown("<hr style='margin: 30px 0;'>", unsafe_allow_html=True)
     st.markdown("#### 🆘 Crisis Resources")
     res_col1, res_col2 = st.columns(2)
@@ -362,7 +344,6 @@ with tab3:
         st.error("📞 **Helpline:** 988 (Suicide & Crisis Lifeline)")
     with res_col2:
         st.warning("💬 **Text Line:** Text HOME to 741741")
-
 
 # --- TAB 4: ADVANCED PERIOD TRACKER ---
 with tab4:
@@ -417,13 +398,12 @@ if st.button("💡 Get General Advice", use_container_width=True):
             response = chatbot_response(health_question, context="women's health")
             st.info(response)
 
-# ==================== CLICKABLE RESOURCES (UPDATED) ====================
+# ==================== CLICKABLE RESOURCES ====================
 st.markdown("<br><br>", unsafe_allow_html=True)
 st.markdown("## 📚 Health Resources")
 
 r_col1, r_col2, r_col3 = st.columns(3)
 
-# Card Styling for clickable cards
 res_card_style = """
     background: white; padding: 25px; border-radius: 15px; 
     border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.05); 

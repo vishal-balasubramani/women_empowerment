@@ -1,13 +1,12 @@
 import streamlit as st
 import sys
 from pathlib import Path
-import re
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from components.cards import mentor_card
-from utils.database import get_mentors_cached, get_db_connection_simple
+from utils.database import get_mentors_cached
 from utils.helpers import show_success_message, chatbot_response
 from utils.css_loader import load_css
 
@@ -33,74 +32,45 @@ if not mentors:
     
     sample_mentors = [
         {
-            "name": "Dr. Priya Sharma",
-            "email": "priya.sharma@example.com",
+            "id": 1, "name": "Dr. Priya Sharma", "email": "priya.sharma@example.com",
             "expertise": "Software Engineering, Tech Leadership",
-            "bio": "20+ years in tech industry. Led engineering teams at top companies. Passionate about helping women break into tech.",
-            "linkedin_url": "https://linkedin.com/in/priyasharma",
+            "bio": "20+ years in tech. Led engineering teams at top companies.",
             "available_slots": 5, "rating": 4.9, "total_mentees": 45
         },
         {
-            "name": "Anjali Verma",
-            "email": "anjali.verma@example.com",
+            "id": 2, "name": "Anjali Verma", "email": "anjali.verma@example.com",
             "expertise": "Digital Marketing, Brand Strategy",
-            "bio": "Marketing executive with 15 years experience. Built multiple successful brands. Help women entrepreneurs grow their business.",
-            "linkedin_url": "https://linkedin.com/in/anjaliverma",
+            "bio": "Marketing executive with 15 years experience. Built multiple successful brands.",
             "available_slots": 3, "rating": 4.8, "total_mentees": 38
         },
         {
-            "name": "Kavita Reddy",
-            "email": "kavita.reddy@example.com",
+            "id": 3, "name": "Kavita Reddy", "email": "kavita.reddy@example.com",
             "expertise": "Data Science, Analytics",
-            "bio": "Data scientist specializing in AI/ML. Mentored 50+ women transitioning into data careers. PhD in Computer Science.",
-            "linkedin_url": "https://linkedin.com/in/kavitareddy",
+            "bio": "Data scientist specializing in AI/ML. Mentored 50+ women.",
             "available_slots": 4, "rating": 4.9, "total_mentees": 52
         },
         {
-            "name": "Meera Patel",
-            "email": "meera.patel@example.com",
+            "id": 4, "name": "Meera Patel", "email": "meera.patel@example.com",
             "expertise": "UI/UX Design, Product Design",
-            "bio": "Lead designer at Fortune 500 company. 12 years of design experience. Love teaching design thinking and user research.",
-            "linkedin_url": "https://linkedin.com/in/meerapatel",
+            "bio": "Lead designer at Fortune 500 company. 12 years of design experience.",
             "available_slots": 6, "rating": 4.7, "total_mentees": 35
         },
         {
-            "name": "Nisha Kapoor",
-            "email": "nisha.kapoor@example.com",
+            "id": 5, "name": "Nisha Kapoor", "email": "nisha.kapoor@example.com",
             "expertise": "Entrepreneurship, Startup Growth",
-            "bio": "Serial entrepreneur. Founded 3 successful startups. Angel investor focusing on women-led ventures.",
-            "linkedin_url": "https://linkedin.com/in/nishakapoor",
+            "bio": "Serial entrepreneur. Founded 3 successful startups.",
             "available_slots": 2, "rating": 5.0, "total_mentees": 28
         },
         {
-            "name": "Rekha Menon",
-            "email": "rekha.menon@example.com",
+            "id": 6, "name": "Rekha Menon", "email": "rekha.menon@example.com",
             "expertise": "Finance, Investment Banking",
-            "bio": "VP at investment bank. 18 years in finance. Help women understand financial markets and career growth in finance.",
-            "linkedin_url": "https://linkedin.com/in/rekhamenon",
+            "bio": "VP at investment bank. 18 years in finance.",
             "available_slots": 4, "rating": 4.8, "total_mentees": 31
-        },
-        {
-            "name": "Swati Gupta",
-            "email": "swati.gupta@example.com",
-            "expertise": "Healthcare, Medical Career",
-            "bio": "Doctor with 25 years experience. Guide young women pursuing medical careers. Focus on work-life balance in medicine.",
-            "linkedin_url": "https://linkedin.com/in/swatigupta",
-            "available_slots": 3, "rating": 4.9, "total_mentees": 42
-        },
-        {
-            "name": "Pooja Singh",
-            "email": "pooja.singh@example.com",
-            "expertise": "HR, Career Development",
-            "bio": "HR Director at multinational company. Expert in career transitions, resume building, and interview preparation.",
-            "linkedin_url": "https://linkedin.com/in/poojasingh",
-            "available_slots": 7, "rating": 4.6, "total_mentees": 60
         }
     ]
-    
     mentors = sample_mentors
 
-# ==================== FEATURE 1: AI MENTOR MATCHMAKER (NEW) ====================
+# ==================== FEATURE 1: AI MENTOR MATCHMAKER ====================
 st.markdown("## 🤖 Find Your Perfect Mentor (AI Match)")
 
 with st.expander("✨ Describe your goals, and AI will find the best mentor for you", expanded=False):
@@ -108,8 +78,8 @@ with st.expander("✨ Describe your goals, and AI will find the best mentor for 
     with col_ai_1:
         user_goal = st.text_input("What is your career goal?", placeholder="e.g., I want to transition from marketing to data science.")
     with col_ai_2:
-        st.write("") # Spacer
-        st.write("") # Spacer
+        st.write("") 
+        st.write("") 
         find_mentor_btn = st.button("🔍 AI Match", use_container_width=True)
 
     if find_mentor_btn and user_goal:
@@ -126,6 +96,7 @@ with st.expander("✨ Describe your goals, and AI will find the best mentor for 
             Explain briefly why they are a good match.
             """
             
+            # Using Gemini Helper
             recommendation = chatbot_response(prompt, context="Mentor Matchmaker")
             
             st.markdown(f"""
@@ -134,7 +105,6 @@ with st.expander("✨ Describe your goals, and AI will find the best mentor for 
                     <div style="white-space: pre-line; line-height: 1.6; color: #15803d;">{recommendation}</div>
                 </div>
             """, unsafe_allow_html=True)
-
 
 # ==================== SEARCH AND FILTER ====================
 st.markdown("### 🔍 Browse All Mentors")
@@ -171,8 +141,9 @@ if filtered_mentors:
             mentor_card(mentor)
             
             col_a, col_b = st.columns(2)
+            mentor_id = mentor.get('id', idx)
+            
             with col_a:
-                mentor_id = mentor.get('id', idx)
                 if st.button(f"📅 Book Session", key=f"book_{mentor_id}_{idx}", use_container_width=True):
                     st.session_state[f'booking_{mentor_id}'] = True
             
@@ -190,42 +161,54 @@ if filtered_mentors:
                         st.balloons()
                         st.session_state[f'booking_{mentor_id}'] = False
             
-            # --- FEATURE 2: AI ICEBREAKER (NEW) ---
-                        # --- FEATURE 2: AI ICEBREAKER (UPDATED) ---
+            # --- FEATURE 2: AI ICEBREAKER MESSAGE (FIXED) ---
             if st.session_state.get(f'message_{mentor_id}', False):
                 with st.expander(f"💬 Send Message to {mentor['name']}", expanded=True):
                     st.info("💡 Not sure what to say? Use AI to generate a professional intro!")
                     
-                    user_context = st.text_input("What do you want to ask?", placeholder="e.g., I want advice on leading a team.", key=f"ctx_{mentor_id}_{idx}")
+                    # 1. Define specific keys for this mentor's widgets
+                    context_key = f"ctx_{mentor_id}_{idx}"
+                    msg_area_key = f"final_msg_{mentor_id}_{idx}"
                     
-                    # AI Generator Button
+                    # 2. Input for goal
+                    user_context = st.text_input("What do you want to ask?", placeholder="e.g., I want advice on leading a team.", key=context_key)
+                    
+                    # 3. AI Generator Button
                     if st.button("✨ Generate AI Draft", key=f"gen_{mentor_id}_{idx}"):
-                        with st.spinner("Drafting message..."):
-                            prompt = f"""
-                            Draft a short, professional LinkedIn connection message (under 300 chars) to a mentor named {mentor['name']}.
-                            Her expertise is {mentor['expertise']}.
-                            My specific question/goal is: "{user_context}".
-                            """
-                            draft = chatbot_response(prompt, context="Professional Networking")
-                            st.session_state[f'draft_{mentor_id}'] = draft # Store draft in session state
+                        if user_context:
+                            with st.spinner("Drafting message..."):
+                                prompt = f"""
+                                Draft a short, professional LinkedIn connection message (under 300 chars) to a mentor named {mentor['name']}.
+                                Her expertise is {mentor['expertise']}.
+                                My specific question/goal is: "{user_context}".
+                                """
+                                draft = chatbot_response(prompt, context="Professional Networking")
+                                
+                                # ✅ FORCE UPDATE: Write directly to the widget's key
+                                st.session_state[msg_area_key] = draft
+                                st.rerun() # Refresh to show the text immediately
+                        else:
+                            st.warning("Please type your goal above first.")
                     
-                    # Text Area for Editing/Typing (Pre-filled if AI generated)
-                    final_msg = st.text_area("Your Message:", value=st.session_state.get(f'draft_{mentor_id}', ""), height=100, key=f"final_msg_{mentor_id}_{idx}")
+                    # 4. Text Area (Bound to session state key)
+                    # If the key exists in session_state (from the button click), it uses that value.
+                    final_msg = st.text_area("Your Message:", key=msg_area_key, height=100)
                     
                     col_send, col_close = st.columns([1, 1])
                     with col_send:
-                        # --- NEW SEND BUTTON ---
                         if st.button("🚀 Send Message", key=f"send_final_{mentor_id}_{idx}", use_container_width=True):
                             if final_msg:
                                 show_success_message(f"Message sent to {mentor['name']}!")
                                 st.balloons()
-                                st.session_state[f'message_{mentor_id}'] = False # Close modal
+                                st.session_state[f'message_{mentor_id}'] = False 
+                                st.rerun()
                             else:
                                 st.warning("Please type a message first.")
                     
                     with col_close:
                         if st.button("Cancel", key=f"close_msg_{mentor_id}_{idx}", use_container_width=True):
                             st.session_state[f'message_{mentor_id}'] = False
+                            st.rerun()
 
             st.markdown("<br>", unsafe_allow_html=True)
 else:

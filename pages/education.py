@@ -2,21 +2,14 @@ import streamlit as st
 import sys
 from pathlib import Path
 import random
-
 import json
-from openai import OpenAI
-
-# Initialize client (Make sure OPENAI_API_KEY is in .env or st.secrets)
-try:
-    client = OpenAI()
-except:
-    client = None
+import re
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from components.cards import course_card
-from utils.database import get_courses_cached, insert_course
+from utils.database import get_courses_cached
 from utils.css_loader import load_css
 from utils.helpers import chatbot_response, search_filter
 
@@ -45,12 +38,12 @@ with st.container(border=True):
     if st.button("🚀 Generate Learning Path", type="primary", use_container_width=True):
         if current_role and target_role:
             with st.spinner(f"AI is analyzing the gap between {current_role} and {target_role}..."):
-                # DYNAMIC AI CALL
+                # DYNAMIC AI CALL (USING GEMINI VIA HELPER)
                 prompt = f"""
                 I am a {current_role} wanting to become a {target_role}.
                 Create a step-by-step learning roadmap. 
                 List 3 key skills I need to learn and 1 project idea to build my portfolio.
-                Format as HTML with bullet points.
+                Format as HTML with bullet points (<ul><li>...</li></ul>).
                 """
                 roadmap = chatbot_response(prompt, context="Career Coach")
                 
@@ -76,7 +69,7 @@ with st.expander("✨ Build My Course Syllabus"):
     if st.button("🛠️ Create Syllabus"):
         if topic:
             with st.spinner(f"Designing {level} syllabus for {topic}..."):
-                # DYNAMIC AI CALL
+                # DYNAMIC AI CALL (USING GEMINI VIA HELPER)
                 prompt = f"""
                 Create a structured 4-week course syllabus for '{topic}' at a {level} level.
                 Include:
@@ -98,7 +91,7 @@ with st.expander("✨ Build My Course Syllabus"):
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ==================== FEATURE 3: DYNAMIC AI QUIZ (OPENAI JSON) ====================
+# ==================== FEATURE 3: DYNAMIC AI QUIZ (GEMINI REPLACEMENT) ====================
 st.markdown("## 🧠 Test Your Knowledge")
 st.write("Take a quick AI-generated quiz on any topic.")
 
@@ -116,35 +109,50 @@ with st.container(border=True):
             st.session_state['current_topic'] = quiz_topic
             st.rerun()
 
-# Quiz Generation using OpenAI JSON Mode
+# Quiz Generation using Gemini (Text Parsing)
 if st.session_state.get('current_topic') and not st.session_state.get('quiz_ready'):
-    if not client:
-        st.error("OpenAI Client not found. Please set OPENAI_API_KEY.")
-    else:
-        with st.spinner(f"🤖 AI is crafting a quiz on {st.session_state['current_topic']}..."):
-            try:
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo-1106", # Supports JSON mode
-                    messages=[
-                        {"role": "system", "content": "You are a quiz generator. Output a valid JSON object with keys: 'question', 'options' (array of 4 strings), and 'answer_index' (0-3)."},
-                        {"role": "user", "content": f"Generate a multiple-choice question about: {st.session_state['current_topic']}"}
-                    ],
-                    response_format={"type": "json_object"}
-                )
-                
-                # Parse JSON directly - 100% reliable structure
-                quiz_json = json.loads(response.choices[0].message.content)
-                
-                st.session_state['quiz_data'] = {
-                    "question": quiz_json['question'],
-                    "options": quiz_json['options'],
-                    "correct_idx": quiz_json['answer_index']
-                }
-                st.session_state['quiz_ready'] = True
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"Error: {str(e)}")
+    with st.spinner(f"🤖 AI is crafting a quiz on {st.session_state['current_topic']}..."):
+        try:
+            # We ask Gemini to give us raw JSON string
+            prompt = f"""
+            Generate a multiple-choice question about: {st.session_state['current_topic']}
+            
+            Return ONLY a valid JSON object. Do not add markdown blocks like ```
+            Structure:
+            {{
+                "question": "Question text here?",
+                "options": ["Option A", "Option B", "Option C", "Option D"],
+                "answer_index": 0
+            }}
+            (answer_index should be 0, 1, 2, or 3)
+            """
+            
+            # Using chatbot_response helper which uses Gemini
+            raw_response = chatbot_response(prompt, context="Quiz Generator")
+            
+            # Clean response (sometimes AI adds markdown)
+            clean_json = raw_response.replace("```json", "").replace("```", "").strip()
+            
+            quiz_json = json.loads(clean_json)
+            
+            st.session_state['quiz_data'] = {
+                "question": quiz_json['question'],
+                "options": quiz_json['options'],
+                "correct_idx": quiz_json['answer_index']
+            }
+            st.session_state['quiz_ready'] = True
+            st.rerun()
+            
+        except Exception as e:
+            st.error(f"Error generating quiz: {str(e)}")
+            # Fallback for error
+            st.session_state['quiz_data'] = {
+                "question": "Which Act covers sexual harassment at workplace in India?",
+                "options": ["POSH Act", "Domestic Violence Act", "Labor Act", "IT Act"],
+                "correct_idx": 0
+            }
+            st.session_state['quiz_ready'] = True
+            st.rerun()
 
 # Display Quiz
 if st.session_state.get('quiz_ready') and st.session_state.get('quiz_data'):
@@ -157,7 +165,6 @@ if st.session_state.get('quiz_ready') and st.session_state.get('quiz_data'):
     
     if st.button("Check Answer", type="primary"):
         if user_choice:
-            # Get index of user choice
             try:
                 user_idx = q['options'].index(user_choice)
                 if user_idx == q['correct_idx']:
@@ -179,7 +186,7 @@ st.write("Courses shared by the community.")
 courses = get_courses_cached()
 
 # Dynamic Filtering
-col_f1, col_f2 = st.columns([3, 1])
+col_f1, col_f2 = st.columns()[1][2]
 with col_f1:
     search_q = st.text_input("Filter Courses", placeholder="Search DB...")
 with col_f2:
@@ -199,10 +206,9 @@ if filtered_courses:
             if st.button(f"Enroll", key=f"c_{idx}", use_container_width=True):
                 st.toast(f"Enrolled in {course['title']}")
 else:
-    st.info("No courses found in database. Add one via the Admin panel!")
+    st.info("No courses found in database.")
 
 st.markdown("<br>", unsafe_allow_html=True)
-
 
 # ==================== DYNAMIC YOUTUBE RESOURCES ====================
 st.markdown("## 🎥 Trending Learning Videos")

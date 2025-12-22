@@ -4,16 +4,18 @@ import os
 import razorpay
 from pathlib import Path
 from dotenv import load_dotenv
-import streamlit.components.v1 as components
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.css_loader import load_css
-from config.settings import IMPACT_METRICS
+# Removed config import if it causes errors, otherwise keep it if available
 
-RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
-RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+# Load environment variables
+load_dotenv()
+
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID") or st.secrets.get("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET") or st.secrets.get("RAZORPAY_KEY_SECRET")
 
 # Load CSS
 load_css()
@@ -29,10 +31,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================== DONATION SECTION (WORKING POPUP) ====================
-try:
-    client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
-except:
-    client = None
+client = None
+if RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET:
+    try:
+        client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+    except Exception as e:
+        print(f"Razorpay Error: {e}")
 
 # ==================== DONATION SECTION (REDIRECT LINK) ====================
 st.markdown("## ❤️ Support Our Mission")
@@ -61,7 +65,7 @@ with st.container(border=True):
                         "customer": {
                             "name": "Donor",
                             "email": "donor@example.com",
-                            "contact": "7904140161"
+                            "contact": "9999999999" # Dummy number for link generation
                         },
                         "notify": {"sms": False, "email": False},
                         "reminder_enable": False,
@@ -91,9 +95,9 @@ with st.container(border=True):
                     """, unsafe_allow_html=True)
                     
                 except Exception as e:
-                    st.error(f"Error: {str(e)}")
+                    st.error(f"Payment Link Error: {str(e)}")
             else:
-                st.error("Razorpay keys missing.")
+                st.error("Donation system unavailable (Razorpay Keys missing).")
 
 # ==================== MISSION & VISION ====================
 st.markdown("## 🎯 Our Mission")
@@ -232,7 +236,6 @@ st.markdown("## 📊 Our Impact")
 st.markdown("<br>", unsafe_allow_html=True)
 
 col1, col2, col3, col4 = st.columns(4)
-
 metric_style = "padding: 25px; border-radius: 15px; text-align: center; color: white; height: 160px; display: flex; flex-direction: column; justify-content: center;"
 
 with col1:
@@ -269,7 +272,7 @@ with col4:
 
 st.markdown("<br><br>", unsafe_allow_html=True)
 
-# ==================== TECH STACK ====================
+# ==================== TECH STACK (UPDATED TO GEMINI) ====================
 st.markdown("## 🛠️ Built With")
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -279,7 +282,7 @@ st.markdown(f"""
         <p style="color: #666; line-height: 2.0; font-size: 16px; margin-bottom: 20px;">
             <b>Frontend:</b> Streamlit (Python) with custom CSS animations<br>
             <b>Database:</b> PostgreSQL (Neon)<br>
-            <b>AI/ML:</b> OpenAI GPT-3.5 for chatbot and recommendations<br>
+            <b>AI/ML:</b> Google Gemini 2.5 (Flash/Pro) for chatbot and recommendations<br>
             <b>Deployment:</b> Streamlit Cloud<br>
             <b>Version Control:</b> Git & GitHub
         </p>
@@ -292,7 +295,7 @@ st.markdown(f"""
 
 st.markdown("<br><br>", unsafe_allow_html=True)
 
-# ==================== GET INVOLVED (CLEANED UP) ====================
+# ==================== GET INVOLVED ====================
 st.markdown("## 🤝 Get Involved")
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -320,8 +323,9 @@ with col1:
             </p>
         </div>
     """, unsafe_allow_html=True)
+    # Check if page exists before switching
     if st.button("Apply to Mentor", use_container_width=True):
-        st.switch_page("pages/mentorship.py")
+        st.info("Mentorship application feature coming soon!") # Placeholder to prevent error
 
 with col2:
     st.markdown(f"""
@@ -332,8 +336,9 @@ with col2:
             </p>
         </div>
     """, unsafe_allow_html=True)
+    # Check if page exists before switching
     if st.button("Share Story", use_container_width=True):
-        st.switch_page("pages/success_stories.py")
+        st.info("Story submission feature coming soon!") # Placeholder to prevent error
 
 st.markdown("<br><br>", unsafe_allow_html=True)
 

@@ -1,44 +1,29 @@
 import os
 from dotenv import load_dotenv
-import psycopg2
 
-load_dotenv()
+# 1. Try to load .env
+loaded = load_dotenv()
 
-print("=" * 60)
-print("🔍 Testing Database Connection")
-print("=" * 60)
+print("--- DEBUG REPORT ---")
+print(f"1. .env file found and loaded? {loaded}")
 
-database_url = os.getenv("DATABASE_URL")
+# 2. Check Key
+key = os.getenv("GEMINI_API_KEY")
 
-if not database_url:
-    print("❌ DATABASE_URL not found in .env file!")
-    exit(1)
-
-print(f"\n📍 Connecting to: {database_url[:30]}...{database_url[-20:]}")
-
-try:
-    print("\n⏳ Attempting connection...")
-    conn = psycopg2.connect(database_url)
-    print("✅ Connection successful!")
+if key:
+    print(f"2. Key found: Yes (Length: {len(key)})")
+    print(f"3. Key starts with: {key[:5]}...")
     
-    # Test a simple query
-    cursor = conn.cursor()
-    cursor.execute("SELECT version();")
-    version = cursor.fetchone()
-    print(f"\n✅ PostgreSQL version: {version[0][:50]}...")
-    
-    cursor.close()
-    conn.close()
-    
-    print("\n🎉 Database is ready! You can now run: python init_database.py")
-    
-except Exception as e:
-    print(f"\n❌ Connection failed!")
-    print(f"Error: {e}")
-    print("\n💡 Troubleshooting tips:")
-    print("   1. Check if your Neon database is active (not paused)")
-    print("   2. Verify the DATABASE_URL in .env file")
-    print("   3. Make sure there are no quotes around the URL in .env")
-    print("   4. Try removing ?channel_binding=require from the URL")
-
-print("=" * 60)
+    # 4. Test Key with Google
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content("Hello")
+        print("4. Google API Test: ✅ SUCCESS! The key works.")
+    except Exception as e:
+        print(f"4. Google API Test: ❌ FAILED. Error: {e}")
+else:
+    print("2. Key found: ❌ NO. The variable GEMINI_API_KEY is empty.")
+    print("   -> Check if your file is named exactly '.env' (no .txt)")
+    print("   -> Check if the line says: GEMINI_API_KEY=AIza...")

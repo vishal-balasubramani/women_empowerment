@@ -2,13 +2,52 @@ import streamlit as st
 from datetime import datetime, timedelta
 import os
 import time
-from openai import OpenAI
+import google.generativeai as genai
 from dotenv import load_dotenv
+import re
 
+# Load environment variables (Reads your .env file)
 load_dotenv()
 
-# Initialize OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# ==================== GEMINI AI CONFIGURATION ====================
+# 1. Get API Key securely
+gemini_api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
+model = None
+
+if gemini_api_key:
+    try:
+        genai.configure(api_key=gemini_api_key)
+        
+        # ⚡ USE STANDARD STABLE MODELS (Dec 2025 Safe List)
+        # We try the most likely to work first
+        model_options = [
+            'gemini-2.5-flash',       # Most reliable (Free Tier Standard)
+            'gemini-2.5-pro',         # Standard Pro
+            'gemini-pro',             # Legacy Stable
+            'gemini-2.5-flash-exp'     # New lightweight
+        ]
+        
+        for m in model_options:
+            try:
+                test_model = genai.GenerativeModel(m)
+                test_model.generate_content("Hi") # Test Pulse
+                model = test_model
+                print(f"✅ CONNECTED TO: {m}")
+                break
+            except Exception as e:
+                print(f"⚠️ {m} failed: {e}")
+                continue
+
+        if not model:
+            print("❌ CRITICAL: No working Gemini models found. Check Google AI Studio for valid model names.")
+            
+    except Exception as e:
+        print(f"❌ Connection Error: {e}")
+else:
+    print("⚠️ Key Missing: GEMINI_API_KEY")
+
+
+# ==================== DATE & TIME UTILS ====================
 
 def format_date(date_obj):
     """Format datetime object to readable string"""
@@ -16,19 +55,19 @@ def format_date(date_obj):
         return date_obj
     return date_obj.strftime("%B %d, %Y")
 
+
 def time_ago(date_obj):
     """Convert datetime to 'time ago' format"""
     if not date_obj:
         return ""
         
     now = datetime.now()
-    # Ensure dt is offset-naive if now is offset-naive
+    # Handle timezone awareness
     if date_obj.tzinfo is None and now.tzinfo is None:
-        pass # Both naive, do nothing
+        pass
     elif date_obj.tzinfo and now.tzinfo:
-        pass # Both aware, do nothing
+        pass
     else:
-        # Mix of naive and aware - remove tz info for simplicity
         date_obj = date_obj.replace(tzinfo=None)
         now = now.replace(tzinfo=None)
         
@@ -47,17 +86,22 @@ def time_ago(date_obj):
     else:
         return "Just now"
 
+
+# ==================== VALIDATION UTILS ====================
+
 def validate_email(email):
     """Validate email format"""
-    import re
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
 
+
 def validate_phone(phone):
     """Validate phone number format"""
-    import re
     pattern = r'^[\d\s\+\-\(\)]{10,}$'
     return re.match(pattern, phone) is not None
+
+
+# ==================== UI HELPERS ====================
 
 def show_success_message(message, duration=3):
     """Display success message with animation"""
@@ -71,8 +115,9 @@ def show_success_message(message, duration=3):
     time.sleep(duration)
     placeholder.empty()
 
+
 def show_error_message(message):
-    """Display error message with animation"""
+    """Display error message"""
     st.markdown(f"""
         <div class="warning-box">
             <h3>⚠️ Error</h3>
@@ -80,8 +125,9 @@ def show_error_message(message):
         </div>
     """, unsafe_allow_html=True)
 
+
 def show_info_message(message):
-    """Display info message with animation"""
+    """Display info message"""
     st.markdown(f"""
         <div class="info-box">
             <h3>ℹ️ Info</h3>
@@ -89,76 +135,83 @@ def show_info_message(message):
         </div>
     """, unsafe_allow_html=True)
 
+
+# ==================== AI FUNCTIONS (GEMINI POWERED) ====================
+
 def chatbot_response(user_message, context="women empowerment"):
-    """Get AI-powered chatbot response with Fallback for Demo Mode"""
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"You are a helpful assistant for a women empowerment platform. Context: {context}"
-                },
-                {
-                    "role": "user",
-                    "content": user_message
-                }
-            ],
-            max_tokens=300,
-            temperature=0.7
+    """Get AI-powered chatbot response"""
+    
+    # 1. Fallback if API Key is missing or invalid
+    if not model:
+        return (
+            "💡 **Demo Mode (AI Unavailable):**\n\n"
+            "**Health:** Eat iron-rich foods & exercise 30 mins daily.\n"
+            "**Career:** Update LinkedIn & learn new skills.\n"
+            "**Mental:** Practice deep breathing & talk to friends.\n\n"
+            "*(Please check your .env file to ensure GEMINI_API_KEY is correct)*"
         )
-        return response.choices[0].message.content
+    
+    # 2. Try to get real AI response
+    try:
+        prompt = f"""
+        Role: Helpful, Empathetic Assistant for a Women Empowerment Platform.
+        Context: {context}
+        User Question: {user_message}
+        
+        Instructions: Answer in 2-3 short, helpful sentences. Be encouraging.
+        """
+        response = model.generate_content(prompt)
+        return response.text.strip()
+        
     except Exception as e:
-        # FALLBACK RESPONSE FOR DEMO (Handles Quota Exceeded / Network Issues)
-        error_str = str(e).lower()
-        if 'insufficient_quota' in error_str or '429' in error_str:
-            return (
-                "💡 **Demo Mode Response:** \n\n"
-                "It seems the AI service is currently busy (Quota Exceeded). Here is some general advice:\n\n"
-                "**Health:** Focus on a balanced diet rich in iron (spinach, lentils) and calcium. Stay hydrated and aim for 30 mins of exercise daily.\n"
-                "**Career:** Upskill regularly, network with peers, and don't hesitate to negotiate for your worth.\n\n"
-                "*(Please check your OpenAI billing to enable real-time AI responses)*"
-            )
-        return f"I'm having trouble connecting right now. Please try again later. Error: {str(e)}"
+        # 3. Fallback if Internet/Quota fails
+        return f"🤖 **AI Busy:** I'm currently unavailable. Please try again in a moment.\n(Error: {str(e)[:50]})"
+
 
 def generate_job_recommendation(user_skills, user_experience):
-    """Generate personalized job recommendations with Fallback"""
+    """Generate job recommendations"""
+    if not model:
+        return "1. Frontend Developer (Match)\n2. Data Analyst (Analytics)\n3. Product Manager (Strategy) - [Demo Data]"
+    
     try:
-        prompt = f"Suggest 3 jobs for Skills: {user_skills}, Exp: {user_experience}"
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=200
-        )
-        return response.choices[0].message.content
+        prompt = f"""
+        Suggest 3 job roles for:
+        Skills: {user_skills}
+        Experience: {user_experience}
+        
+        Format:
+        1. [Job Title] - [One sentence reason]
+        """
+        response = model.generate_content(prompt)
+        return response.text.strip()
     except Exception:
-        return (
-            "✨ **Recommended Roles (Demo):**\n"
-            "1. **Frontend Developer** - Matches your technical skills.\n"
-            "2. **Data Analyst** - Great for your analytical background.\n"
-            "3. **Product Manager** - Leverages your experience."
-        )
+        return "1. Frontend Developer\n2. Data Analyst\n3. Product Manager (Fallback Data)"
+
 
 def generate_course_recommendation(interests, current_level):
-    """Generate personalized course recommendations with Fallback"""
+    """Generate course recommendations"""
+    if not model:
+        return "1. Python (Udemy)\n2. Web Dev (freeCodeCamp)\n3. Data Science (Coursera) - [Demo Data]"
+    
     try:
-        prompt = f"Suggest 3 courses for Interests: {interests}, Level: {current_level}"
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=200
-        )
-        return response.choices[0].message.content
+        prompt = f"""
+        Suggest 3 courses for:
+        Interests: {interests}
+        Level: {current_level}
+        
+        Format:
+        1. [Course Name] ([Platform]) - [Why good]
+        """
+        response = model.generate_content(prompt)
+        return response.text.strip()
     except Exception:
-        return (
-            "📚 **Recommended Path (Demo):**\n"
-            "1. **Python for Beginners** (Udemy) - Great starting point.\n"
-            "2. **Google Data Analytics Cert** (Coursera) - Align with your interests.\n"
-            "3. **Intro to Web Dev** (freeCodeCamp)."
-        )
+        return "1. Python (Udemy)\n2. Web Dev (freeCodeCamp)\n3. Data Science (Coursera) (Fallback Data)"
+
+
+# ==================== DATA UTILS ====================
 
 def search_filter(items, query, search_fields):
-    """Filter items based on search query"""
+    """Filter list of items based on search query"""
     if not query:
         return items
     
@@ -173,17 +226,20 @@ def search_filter(items, query, search_fields):
     
     return filtered
 
+
 def paginate(items, page=1, items_per_page=10):
     """Paginate a list of items"""
     start = (page - 1) * items_per_page
     end = start + items_per_page
     return items[start:end], len(items)
 
+
 def get_sample_data_if_none(data, sample_data):
-    """Return sample data if database data is empty or None"""
+    """Return sample data if database is empty"""
     if data and len(data) > 0:
         return data
     return sample_data
+
 
 def format_currency(amount, currency="₹"):
     """Format currency value"""

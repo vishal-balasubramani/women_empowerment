@@ -14,3 +14,5 @@ maxUploadSize = 10
 
 [browser]
 gatherUsageStats = false
+GEMINI_API_KEY="AIzaSyCMN-b5Vf5gnOufiTuNmzh2w1gTxtTnH24"
+

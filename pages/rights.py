@@ -24,7 +24,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================== LEGAL CATEGORIES ====================
-# ==================== LEGAL CATEGORIES (REVAMPED UI) ====================
 st.markdown("## 📚 Women's Legal Rights in India")
 
 # Custom CSS for styling tabs
@@ -109,14 +108,11 @@ with tab5:
     with col_b:
         legal_card("📝", "Will & Testament", "Women have full rights to dispose of their self-acquired property/earnings to anyone via a Will.", "#f0fdf4", "#16a34a")
 
-
 st.markdown("<br>", unsafe_allow_html=True)
-
 
 # ==================== FEATURE 1: AI DOCUMENT SIMPLIFIER ====================
 st.markdown("## 📄 AI Legal Document Simplifier")
 
-# Create a clean card layout
 with st.container(border=True):
     col_upload, col_action = st.columns([2, 1])
     
@@ -130,23 +126,17 @@ with st.container(border=True):
         st.write("") 
         st.write("") 
         
-        # --- CSS TO FORCE WHITE TEXT ---
-   
-                # --- CSS TO FORCE WHITE TEXT ON DISABLED BUTTONS ---
         st.markdown("""
             <style>
-            /* Force white text on disabled buttons */
             div.stButton > button:disabled {
                 color: #ffffff !important;
-                opacity: 0.7 !important; /* Optional: Makes it look slightly faded but readable */
+                opacity: 0.7 !important;
             }
             div.stButton > button:disabled * {
                 color: #ffffff !important;
             }
             </style>
         """, unsafe_allow_html=True)
-
-
         
         if uploaded_file:
             analyze_btn = st.button("✨ Simplify Now", use_container_width=True, type="primary")
@@ -164,6 +154,8 @@ with st.container(border=True):
             Translate complex legal jargon into simple English.
             Highlight any "Red Flags" or unfair clauses.
             """
+            
+            # Using Gemini Helper
             summary = chatbot_response(prompt, context="Legal Expert")
             
             st.markdown(f"""
@@ -177,11 +169,8 @@ with st.container(border=True):
                 </div>
             """, unsafe_allow_html=True)
 
-
-
 st.markdown("<br>", unsafe_allow_html=True)
 
-#
 # ==================== FEATURE 2: REAL-TIME VOICE ASSISTANT ====================
 st.markdown("## 🎙️ Voice-Enabled Legal Assistant")
 
@@ -193,7 +182,6 @@ with st.container(border=True):
         st.markdown("**Tap to Speak:**")
         
         # 🎤 REAL MICROPHONE INPUT
-        # This button records audio and converts it to text immediately
         text_output = speech_to_text(
             language='en', 
             start_prompt="🎤 Start", 
@@ -212,7 +200,7 @@ with st.container(border=True):
         
         if user_query:
             with st.spinner("🤖 AI is processing your legal query..."):
-                # Call your existing chatbot function
+                # Call existing chatbot function (Gemini)
                 response = chatbot_response(user_query, context="Indian Legal Rights")
                 
                 st.markdown(f"""
@@ -221,7 +209,6 @@ with st.container(border=True):
                         <p style="margin-top: 5px; color: #475569; line-height: 1.6;">{response}</p>
                     </div>
                 """, unsafe_allow_html=True)
-
 
 st.markdown("<br>", unsafe_allow_html=True)
 

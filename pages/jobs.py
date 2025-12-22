@@ -140,7 +140,7 @@ else:
 
 st.markdown("<br><br>", unsafe_allow_html=True)
 
-# ==================== FEATURE 1: AI RESUME SCANNER (NEW) ====================
+# ==================== FEATURE 1: AI RESUME SCANNER (GEMINI POWERED) ====================
 st.markdown("## 📄 AI Resume Scanner")
 
 with st.expander("🔍 **Check your Resume Match Score**"):
@@ -166,6 +166,7 @@ with st.expander("🔍 **Check your Resume Match Score**"):
                 3. One specific improvement tip.
                 Keep it concise.
                 """
+                # USING GEMINI HELPER FUNCTION
                 analysis = chatbot_response(prompt, context="Career Coach")
                 
                 st.markdown(f"""
@@ -181,7 +182,7 @@ with st.expander("🔍 **Check your Resume Match Score**"):
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ==================== FEATURE 2: MOCK INTERVIEW (NEW) ====================
+# ==================== FEATURE 2: MOCK INTERVIEW (GEMINI POWERED) ====================
 st.markdown("## 🎙️ Mock Interview Simulator")
 
 with st.expander("💬 **Practice Interview Questions**"):
@@ -190,6 +191,7 @@ with st.expander("💬 **Practice Interview Questions**"):
     if st.button("🎲 Generate Interview Questions"):
         with st.spinner(f"Generating questions for {role_select}..."):
             prompt = f"Generate 3 tough interview questions for a {role_select} role. Focus on behavioral and technical aspects."
+            # USING GEMINI HELPER FUNCTION
             questions = chatbot_response(prompt, context="Interviewer")
             
             st.markdown(f"""
@@ -217,6 +219,7 @@ with st.expander("✨ Click to get AI-powered job suggestions"):
     if st.button("🎯 Get Recommendations", use_container_width=True):
         if user_skills and user_experience:
             with st.spinner("Analyzing your profile..."):
+                # USING GEMINI HELPER FUNCTION
                 recommendations = generate_job_recommendation(user_skills, user_experience)
                 st.markdown(f"""
                     <div class="success-box">

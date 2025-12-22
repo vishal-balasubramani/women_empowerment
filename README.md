@@ -27,8 +27,12 @@ A comprehensive Streamlit web application empowering women through safety resour
 
 - Python 3.8+
 - PostgreSQL database (Neon recommended)
-- OpenAI API key
+- Gemini API key
 
 ### Installation
 
 1. **Clone the repository**
+2. **Install all the dependencies**
+3. **pip install -r requirements.txt**
+4. **run the project**
+5. **streamlit run streamlit_app.py**

@@ -18,7 +18,7 @@ A comprehensive Streamlit web application empowering women through safety resour
 - **Frontend**: Streamlit + Custom CSS Animations
 - **Backend**: Python
 - **Database**: PostgreSQL (Neon)
-- **AI**: OpenAI GPT-3.5
+- **AI**: Gemini-2.5 flash
 - **Deployment**: Streamlit Cloud
 
 ## 🚀 Getting Started
